@@ -1,0 +1,26 @@
+{
+  "name": "agentrift",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev:server": "tsx watch server/index.ts",
+    "dev:client": "vite client",
+    "build": "vite build client",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "express": "^5.2.1",
+    "ws": "^8.21.3"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.6",
+    "@types/ws": "^8.18.1",
+    "tsx": "^4.23.13",
+    "typescript": "^7.0.2",
+    "vite": "^8.2.2",
+    "vitest": "^5.0.0"
+  },
+  "allowScripts": {
+    "esbuild@0.28.2": true
+  }
+}
