@@ -1,6 +1,6 @@
 import { Router } from "express";
 import type { WSEvent } from "../../shared/types";
-import { Config } from "../config";
+import { Config } from "../../shared/config";
 import type { IssueStore } from "../issue-store";
 
 const SEVERITIES = new Set<string>(["low", "medium", "high"]);

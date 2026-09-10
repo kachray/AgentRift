@@ -2,7 +2,7 @@ import { EventEmitter } from "node:events";
 import fs from "node:fs";
 import path from "node:path";
 import type { Agent } from "../shared/types";
-import { Config } from "./config";
+import { Config } from "../shared/config";
 
 const AGENTS_FILE = "agents.json";
 const ALLOWED_KEYS = new Set<string>(["name", "stationId", "position", "status", "currentTask"]);

@@ -1,4 +1,4 @@
-import type { Config as AppConfig } from "../shared/types";
+import type { Config as AppConfig } from "./types";
 
 export const Config: AppConfig = {
   tileSize: 48,

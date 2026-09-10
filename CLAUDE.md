@@ -20,7 +20,7 @@ server, JSON file persistence, shared types in `shared/types.ts`.
   them to `WSEvent`s.
 - **Stores are factories** (`createAgentStore` / `createIssueStore`) taking an
   explicit data dir. Tests pass temp dirs and never touch `server/data/`.
-- **`server/config.ts` exports the value `Config`**; the shared type is imported
+- **`shared/config.ts` exports the value `Config`**; the shared type is imported
   there as `Config as AppConfig` — a value and a type of the same name collide
   (TS2395), so alias the type import, never rename the export.
 - **No frontend framework.** No React/Next/Vue — plain Phaser 3 + Vite.
