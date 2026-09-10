@@ -3,3 +3,10 @@ dist
 .env
 server/data/*.json
 server/data/*.jsonl
+
+# Phase 1 verification scratch
+server.log
+ws.out
+verify-out.txt
+verify-phase1.sh
+ws-check.mjs
