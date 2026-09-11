@@ -28,6 +28,7 @@ export interface Config {
   canvasHeight: number;
   issueThreshold: number;
   stations: Station[];
+  meetingPoint: Station;
 }
 
 export type WSEvent =

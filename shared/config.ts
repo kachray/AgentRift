@@ -12,4 +12,5 @@ export const Config: AppConfig = {
     { id: "library", x: 840, y: 504 },
     { id: "commons", x: 504, y: 336 },
   ],
+  meetingPoint: { id: "meeting", x: 504, y: 624 },
 };

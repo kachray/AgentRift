@@ -1,6 +1,8 @@
 import Phaser from "phaser";
 import type { Agent, WSEvent } from "../../shared/types";
 import { connectSocket, type GameSocket, type SocketState } from "../net/socket";
+import { createFloor } from "../render/tiles";
+import { createStations } from "../render/stations";
 
 export class WorldScene extends Phaser.Scene {
   private readonly agents = new Map<string, Agent>();
@@ -13,6 +15,9 @@ export class WorldScene extends Phaser.Scene {
 
   create(): void {
     console.log("WorldScene created");
+
+    createFloor(this);
+    createStations(this);
 
     this.statusText = this.add.text(12, 12, "Disconnected", {
       fontFamily: "monospace",
