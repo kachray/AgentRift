@@ -5,7 +5,14 @@ import type { Agent } from "../shared/types";
 import { Config } from "../shared/config";
 
 const AGENTS_FILE = "agents.json";
-const ALLOWED_KEYS = new Set<string>(["name", "stationId", "position", "status", "currentTask"]);
+const ALLOWED_KEYS = new Set<string>([
+  "name",
+  "stationId",
+  "position",
+  "target",
+  "status",
+  "currentTask",
+]);
 const STATUSES = new Set<string>(["idle", "walking", "working", "thinking", "at_council"]);
 
 export interface AgentStore {
@@ -22,6 +29,7 @@ function seedAgents(): Agent[] {
     name: names[i],
     stationId: station.id,
     position: { x: station.x, y: station.y },
+    target: null,
     status: "idle" as const,
     currentTask: null,
   }));
@@ -38,6 +46,13 @@ function validatePartial(partial: Partial<Agent>): void {
     const { x, y } = partial.position as { x: unknown; y: unknown };
     if (typeof x !== "number" || typeof y !== "number") {
       throw new TypeError("position must be {x, y} numbers");
+    }
+  }
+  // null is valid here: it means "not walking anywhere". position has no such case.
+  if (partial.target !== undefined && partial.target !== null) {
+    const { x, y } = partial.target as { x: unknown; y: unknown };
+    if (typeof x !== "number" || typeof y !== "number") {
+      throw new TypeError("target must be {x, y} numbers or null");
     }
   }
 }

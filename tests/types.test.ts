@@ -8,6 +8,7 @@ describe("shared types", () => {
       name: "Ada",
       stationId: "lab",
       position: { x: 1, y: 2 },
+      target: null,
       status: "idle",
       currentTask: null,
     };

@@ -20,6 +20,7 @@ describe("agent-store", () => {
     for (const agent of agents) {
       expect(agent.status).toBe("idle");
       expect(agent.currentTask).toBeNull();
+      expect(agent.target).toBeNull();
       expect(agent.stationId).toBeTruthy();
     }
   });
@@ -50,5 +51,35 @@ describe("agent-store", () => {
     store.update("ada", { status: "thinking" });
     expect(seen).toHaveLength(1);
     expect((seen[0] as { status: string }).status).toBe("thinking");
+  });
+
+  it("update persists a target across reload", () => {
+    const dir = tmp();
+    const store = createAgentStore(dir);
+    store.update("ada", { target: { x: 504, y: 624 } });
+    expect(createAgentStore(dir).getById("ada")?.target).toEqual({ x: 504, y: 624 });
+  });
+
+  it("update emits the target in the event payload", () => {
+    const store = createAgentStore(tmp());
+    const seen: unknown[] = [];
+    store.events.on("update", (agent: unknown) => seen.push(agent));
+    store.update("ada", { target: { x: 100, y: 200 } });
+    expect((seen[0] as { target: unknown }).target).toEqual({ x: 100, y: 200 });
+  });
+
+  it("update accepts a null target and clears a set one", () => {
+    const dir = tmp();
+    const store = createAgentStore(dir);
+    store.update("ada", { target: { x: 100, y: 200 } });
+    store.update("ada", { target: null });
+    expect(store.getById("ada")?.target).toBeNull();
+    expect(createAgentStore(dir).getById("ada")?.target).toBeNull();
+  });
+
+  it("update rejects a target missing y, same as an invalid position", () => {
+    const store = createAgentStore(tmp());
+    expect(() => store.update("ada", { target: { x: 1 } as never })).toThrow(TypeError);
+    expect(() => store.update("ada", { position: { x: 1 } as never })).toThrow(TypeError);
   });
 });

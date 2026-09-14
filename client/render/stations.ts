@@ -1,14 +1,14 @@
 import Phaser from "phaser";
 import { Config } from "../../shared/config";
 
-const STATION_COLORS: Record<string, number> = {
+export const STATION_COLORS: Record<string, number> = {
   lab: 0x4f8ef7,
   forge: 0xf78f4f,
   garden: 0x5fd07a,
   library: 0xb06ff5,
   commons: 0xf5d24f,
 };
-const FALLBACK_COLOR = 0x9aa4b8;
+export const FALLBACK_COLOR = 0x9aa4b8;
 const MEETING_COLOR = 0xf75f8f;
 const STROKE_COLOR = 0x101828;
 

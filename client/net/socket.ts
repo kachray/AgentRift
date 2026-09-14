@@ -1,7 +1,8 @@
 import type { WSEvent } from "../../shared/types";
 
-// Single source for the socket URL.
-const WS_URL = "ws://localhost:3000";
+// Single source for the server origin.
+export const SERVER_URL = "http://localhost:3000";
+const WS_URL = SERVER_URL.replace(/^http/, "ws");
 
 export type SocketState = "connected" | "disconnected";
 

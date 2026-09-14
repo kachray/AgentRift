@@ -9,6 +9,7 @@ export interface Agent {
   name: string;
   stationId: string;
   position: { x: number; y: number };
+  target: { x: number; y: number } | null;
   status: "idle" | "walking" | "working" | "thinking" | "at_council";
   currentTask: string | null;
 }
