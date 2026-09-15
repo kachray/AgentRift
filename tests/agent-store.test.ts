@@ -3,6 +3,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { createAgentStore } from "../server/agent-store";
+import { Config } from "../shared/config";
 
 const dirs: string[] = [];
 function tmp(): string {
@@ -81,5 +82,50 @@ describe("agent-store", () => {
     const store = createAgentStore(tmp());
     expect(() => store.update("ada", { target: { x: 1 } as never })).toThrow(TypeError);
     expect(() => store.update("ada", { position: { x: 1 } as never })).toThrow(TypeError);
+  });
+});
+
+describe("agent-store arrival status", () => {
+  const meeting = Config.meetingPoint;
+  const adaStation = Config.stations.find((s) => s.id === "lab")!;
+
+  it("derives at_council when a cleared target lands on the meeting point", () => {
+    const store = createAgentStore(tmp());
+    store.update("ada", { status: "walking", target: meeting });
+    const arrived = store.update("ada", { position: meeting, target: null });
+    expect(arrived?.status).toBe("at_council");
+  });
+
+  it("derives idle when a cleared target lands on the agent's own station", () => {
+    const store = createAgentStore(tmp());
+    store.update("ada", { status: "walking", target: adaStation });
+    const arrived = store.update("ada", { position: adaStation, target: null });
+    expect(arrived?.status).toBe("idle");
+  });
+
+  it("leaves status untouched when the arrival is somewhere else entirely", () => {
+    const store = createAgentStore(tmp());
+    store.update("ada", { status: "thinking" });
+    const updated = store.update("ada", { position: { x: 5, y: 5 }, target: null });
+    expect(updated?.status).toBe("thinking");
+  });
+
+  it("never overrides an explicit status", () => {
+    const store = createAgentStore(tmp());
+    const updated = store.update("ada", { position: meeting, target: null, status: "walking" });
+    expect(updated?.status).toBe("walking");
+  });
+
+  it("derives nothing while a target is still set", () => {
+    const store = createAgentStore(tmp());
+    store.update("ada", { status: "at_council" });
+    const updated = store.update("ada", { position: adaStation, target: adaStation });
+    expect(updated?.status).toBe("at_council");
+  });
+
+  it("matches a rounded arrival within the epsilon, not just exactly", () => {
+    const store = createAgentStore(tmp());
+    const updated = store.update("ada", { position: { x: meeting.x + 1, y: meeting.y }, target: null });
+    expect(updated?.status).toBe("at_council");
   });
 });

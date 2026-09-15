@@ -57,6 +57,32 @@ function validatePartial(partial: Partial<Agent>): void {
   }
 }
 
+const ARRIVAL_EPSILON = 1; // px, same slack the client uses to mean "already standing there"
+
+function withinEpsilon(a: { x: number; y: number }, b: { x: number; y: number }): boolean {
+  const dx = a.x - b.x;
+  const dy = a.y - b.y;
+  return dx * dx + dy * dy <= ARRIVAL_EPSILON * ARRIVAL_EPSILON;
+}
+
+/**
+ * A caller that clears the target has said "I have arrived" — where it arrived
+ * decides the status. Derived here, not in the route, because every writer
+ * (council trigger, council clear, the client's arrival PUT) goes through
+ * update(); a rule held in one caller is a rule the others can break.
+ *
+ * Config is read now, not captured: a mid-walk retarget must never let a stale
+ * arrival match the place it was aiming at.
+ */
+function deriveArrivalStatus(partial: Partial<Agent>, current: Agent): Partial<Agent> {
+  if (partial.status !== undefined || partial.target !== null) return {};
+  const position = partial.position ?? current.position;
+  if (withinEpsilon(position, Config.meetingPoint)) return { status: "at_council" };
+  const station = Config.stations.find((s) => s.id === current.stationId);
+  if (station && withinEpsilon(position, station)) return { status: "idle" };
+  return {}; // somewhere else entirely — don't guess
+}
+
 export function createAgentStore(dataDir: string): AgentStore {
   fs.mkdirSync(dataDir, { recursive: true });
   const file = path.join(dataDir, AGENTS_FILE);
@@ -83,7 +109,7 @@ export function createAgentStore(dataDir: string): AgentStore {
       const agent = agents.get(id);
       if (!agent) return undefined;
       validatePartial(partial);
-      const updated: Agent = { ...agent, ...partial };
+      const updated: Agent = { ...agent, ...partial, ...deriveArrivalStatus(partial, agent) };
       agents.set(id, updated);
       persist();
       events.emit("update", updated);
