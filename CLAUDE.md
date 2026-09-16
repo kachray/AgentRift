@@ -38,10 +38,24 @@ server, JSON file persistence, shared types in `shared/types.ts`.
 
 ## Known design decisions
 
-- **`council:triggered` fires on every `POST /api/issues` where the unresolved
-  count is >= threshold, not once on crossing.** Accepted for Phase 1 (event +
-  log only). Before Phase 5 wires this to real agent movement, decide: latch
-  until the count drops below threshold again, or debounce.
+- **`council:triggered` is latched, not debounced.** It fires once when the
+  unresolved count crosses to `>= threshold`, and re-arms only after the count
+  drops back below the threshold. The latch lives in `server/council-state.ts`
+  and is checked from both edges — issue creation (may trigger) and issue
+  resolution (may clear) — so neither edge can bypass it. Agents walk to
+  `Config.meetingPoint` on trigger and back to their own stations on clear.
+- **Agent status on arrival is derived in the agent store, not the route.**
+  A write that clears the target has said "I have arrived"; `update()` reads
+  the position against the live `Config` and sets `at_council` or `idle`.
+  Every writer routes through the store, so the rule cannot be bypassed by one
+  caller. See `deriveArrivalStatus` in `server/agent-store.ts`.
+
+## Workflow
+
+- When a prompt explicitly asks for a plan before implementation and says to
+  wait for approval, STOP after presenting the plan. Do not implement, even if
+  the path seems obvious. The plan review is the point — it catches design
+  errors while they are cheap to fix.
 
 ## Secrets
 
