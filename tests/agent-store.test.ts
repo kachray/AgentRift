@@ -83,11 +83,34 @@ describe("agent-store", () => {
     expect(() => store.update("ada", { target: { x: 1 } as never })).toThrow(TypeError);
     expect(() => store.update("ada", { position: { x: 1 } as never })).toThrow(TypeError);
   });
+
+  it("update rejects a position carrying extra keys", () => {
+    const store = createAgentStore(tmp());
+    expect(() => store.update("ada", { position: { x: 1, y: 2, id: "oops" } as never })).toThrow(TypeError);
+  });
+
+  it("update rejects a target carrying extra keys", () => {
+    const store = createAgentStore(tmp());
+    expect(() => store.update("ada", { target: { x: 1, y: 2, extra: true } as never })).toThrow(TypeError);
+  });
+
+  it("update rejects a whole Station object, the mistake that motivated this", () => {
+    const store = createAgentStore(tmp());
+    expect(() => store.update("ada", { target: Config.meetingPoint as never })).toThrow(TypeError);
+  });
+
+  it("update still accepts a bare {x, y}", () => {
+    const store = createAgentStore(tmp());
+    expect(store.update("ada", { position: { x: 1, y: 2 }, target: { x: 3, y: 4 } })?.target).toEqual({ x: 3, y: 4 });
+  });
 });
 
 describe("agent-store arrival status", () => {
-  const meeting = Config.meetingPoint;
-  const adaStation = Config.stations.find((s) => s.id === "lab")!;
+  // Config's Station carries an id; Agent.target is exactly {x, y}. Strip it,
+  // same as the retarget path does.
+  const point = ({ x, y }: { x: number; y: number }) => ({ x, y });
+  const meeting = point(Config.meetingPoint);
+  const adaStation = point(Config.stations.find((s) => s.id === "lab")!);
 
   it("derives at_council when a cleared target lands on the meeting point", () => {
     const store = createAgentStore(tmp());

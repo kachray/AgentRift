@@ -35,6 +35,19 @@ function seedAgents(): Agent[] {
   }));
 }
 
+/**
+ * A point is exactly {x, y}. Extra keys are rejected, not ignored: Config's
+ * Station carries an id and is the obvious thing to pass in by mistake, and an
+ * object that survives validation gets persisted and broadcast as-is.
+ */
+function isPoint(value: unknown): boolean {
+  if (typeof value !== "object" || value === null) return false;
+  const keys = Object.keys(value);
+  if (keys.length !== 2 || !keys.includes("x") || !keys.includes("y")) return false;
+  const { x, y } = value as { x: unknown; y: unknown };
+  return typeof x === "number" && typeof y === "number";
+}
+
 function validatePartial(partial: Partial<Agent>): void {
   for (const key of Object.keys(partial)) {
     if (!ALLOWED_KEYS.has(key)) throw new TypeError(`unknown agent field: ${key}`);
@@ -42,18 +55,12 @@ function validatePartial(partial: Partial<Agent>): void {
   if (partial.status !== undefined && !STATUSES.has(partial.status)) {
     throw new TypeError(`invalid status: ${partial.status}`);
   }
-  if (partial.position !== undefined) {
-    const { x, y } = partial.position as { x: unknown; y: unknown };
-    if (typeof x !== "number" || typeof y !== "number") {
-      throw new TypeError("position must be {x, y} numbers");
-    }
+  if (partial.position !== undefined && !isPoint(partial.position)) {
+    throw new TypeError("position must be {x, y} numbers");
   }
   // null is valid here: it means "not walking anywhere". position has no such case.
-  if (partial.target !== undefined && partial.target !== null) {
-    const { x, y } = partial.target as { x: unknown; y: unknown };
-    if (typeof x !== "number" || typeof y !== "number") {
-      throw new TypeError("target must be {x, y} numbers or null");
-    }
+  if (partial.target !== undefined && partial.target !== null && !isPoint(partial.target)) {
+    throw new TypeError("target must be {x, y} numbers or null");
   }
 }
 
