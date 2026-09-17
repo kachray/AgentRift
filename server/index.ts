@@ -4,9 +4,18 @@ import { createAgentStore } from "./agent-store";
 import { createIssueStore } from "./issue-store";
 import { createCouncilState } from "./council-state";
 import { createWsHub } from "./ws";
+import { attachDebateTrigger } from "./council/debate-trigger";
 import { createAgentsRouter } from "./routes/agents";
 import { createIssuesRouter } from "./routes/issues";
 import { Config } from "../shared/config";
+
+// Node's own .env reader — no dependency. Absent file is fine: the server runs,
+// and a missing GROQ_API_KEY is reported by the council client when it is used.
+try {
+  process.loadEnvFile();
+} catch {
+  /* no .env */
+}
 
 const PORT = Number(process.env.PORT ?? 3000);
 const dataDir = path.join(import.meta.dirname, "data");
@@ -39,3 +48,5 @@ const hub = createWsHub(server, agentStore, issueStore);
 
 app.use("/api/agents", createAgentsRouter(agentStore));
 app.use("/api/issues", createIssuesRouter(issueStore, agentStore, council, hub.broadcast));
+
+attachDebateTrigger({ agentStore, issueStore, council, broadcast: hub.broadcast });
