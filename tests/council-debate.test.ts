@@ -3,7 +3,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import type { WSEvent } from "../shared/types";
-import { Config } from "../shared/config";
+import { Config, councilPointFor } from "../shared/config";
 import { createAgentStore, type AgentStore } from "../server/agent-store";
 import { createIssueStore, type IssueStore } from "../server/issue-store";
 import { createCouncilState, type CouncilState } from "../server/council-state";
@@ -45,11 +45,12 @@ function stubFetch(impl: (call: number) => Promise<Response>): void {
   vi.stubGlobal("fetch", fetchMock);
 }
 
-/** Clear the target at the meeting point — exactly what the client's arrival PUT does. */
+/** Clear the target at the agent's council seat — exactly what the client's arrival PUT does. */
 function arrive(agentStore: AgentStore, id: string): void {
-  // Coordinates only: Config.meetingPoint carries an id, and the store rejects
-  // anything but exactly {x, y}.
-  const { x, y } = Config.meetingPoint;
+  // Coordinates only: a Station carries an id, and the store rejects anything
+  // but exactly {x, y}.
+  const agent = agentStore.getById(id)!;
+  const { x, y } = councilPointFor(agent.stationId)!;
   agentStore.update(id, { position: { x, y }, target: null });
 }
 

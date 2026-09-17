@@ -1,6 +1,6 @@
 import { Router } from "express";
 import type { Agent, WSEvent } from "../../shared/types";
-import { Config } from "../../shared/config";
+import { Config, councilPointFor } from "../../shared/config";
 import type { IssueStore } from "../issue-store";
 import type { AgentStore } from "../agent-store";
 import type { CouncilState } from "../council-state";
@@ -44,7 +44,7 @@ export function createIssuesRouter(
     // Only the rising edge moves anyone; a create can't lower the count, so
     // there is no falling edge to handle here.
     if (changed && active) {
-      retargetAll(() => Config.meetingPoint);
+      retargetAll((agent) => councilPointFor(agent.stationId));
       broadcast({ type: "council:triggered", payload: { unresolvedCount, threshold: Config.issueThreshold } });
       console.log(`council triggered: ${unresolvedCount} unresolved issues (threshold ${Config.issueThreshold})`);
     }

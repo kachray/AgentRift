@@ -48,14 +48,20 @@ export class WorldScene extends Phaser.Scene {
   }
 
   private setStatus(state: SocketState): void {
-    const connected = state === "connected";
-    this.statusText?.setText(connected ? "Connected" : "Disconnected");
-    this.statusText?.setColor(connected ? "#55ff88" : "#ff5555");
+    const label =
+      state === "connected" ? "Connected" : state === "retrying" ? "Reconnecting…" : "Disconnected";
+    const color =
+      state === "connected" ? "#55ff88" : state === "retrying" ? "#ffaa55" : "#ff5555";
+    this.statusText?.setText(label);
+    this.statusText?.setColor(color);
   }
 
   private handleEvent(event: WSEvent): void {
     switch (event.type) {
       case "agent:list":
+        // Reconnect fires agent:list again — the resync must not accumulate.
+        for (const id of [...this.walks.keys()]) this.stopWalk(id); // stale tweens point at old views
+        for (const view of this.views.values()) view.destroy(); // otherwise sprites stack
         this.agents.clear();
         for (const agent of event.payload) this.agents.set(agent.id, agent);
         this.views = createAgentViews(this, event.payload);

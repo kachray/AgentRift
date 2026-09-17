@@ -4,22 +4,27 @@ import { Config } from "../../shared/config";
 
 /** Calibration knob, not a constant of nature — reveal pacing is the client's job. */
 const REVEAL_INTERVAL_MS = 2500;
-/** Down-right of the meeting point, clear of the marker and the agent sprites. */
-const OFFSET_X = 56;
-const OFFSET_Y = 56;
-const WRAP_WIDTH = 660;
+const PANEL_WIDTH = 400;
+const MARGIN = 16;
+const MAX_HEIGHT = Config.canvasHeight - MARGIN * 2;
 
 export interface CouncilPanel {
   show(messages: DebateMessage[]): void;
 }
 
 /**
- * The debate transcript, appended one persona at a time. Deliberately not over
- * the sprites: the four personas are their own cast, not the five walking agents.
+ * The debate transcript: a fixed screen-space panel, top-right, trimmed to fit —
+ * newest lines always on-screen, oldest destroyed. Deliberately not over the
+ * sprites: the four personas are their own cast, not the five walking agents.
+ *
+ * ponytail: trim has no scrollback — add mask + wheel scroll if reading
+ * history matters. A single message taller than the panel still spills past
+ * the trim (it keeps >=1 line); server-side length cap or mask+scroll if that
+ * bites.
  */
 export function createCouncilPanel(scene: Phaser.Scene): CouncilPanel {
-  const originX = Config.meetingPoint.x + OFFSET_X;
-  const originY = Config.meetingPoint.y - OFFSET_Y;
+  const originX = Config.canvasWidth - PANEL_WIDTH - MARGIN;
+  const originY = MARGIN;
   const lines: Phaser.GameObjects.Text[] = [];
   let pending: Phaser.Time.TimerEvent[] = [];
 
@@ -30,10 +35,18 @@ export function createCouncilPanel(scene: Phaser.Scene): CouncilPanel {
     lines.length = 0;
   }
 
-  /** Wrap width is not fixed, so a long message needs to know where it ended. */
-  function nextY(): number {
-    const last = lines[lines.length - 1];
-    return last ? last.y + last.height + 4 : originY;
+  /** Destroy oldest lines until the stack fits, then restack from the top. */
+  function layout(): void {
+    const height = () => lines.reduce((sum, l) => sum + l.height, 0) + (lines.length - 1) * 4;
+    while (lines.length > 1 && height() > MAX_HEIGHT) {
+      lines[0].destroy();
+      lines.shift();
+    }
+    let y = originY;
+    for (const line of lines) {
+      line.y = y;
+      y += line.height + 4;
+    }
   }
 
   return {
@@ -44,15 +57,18 @@ export function createCouncilPanel(scene: Phaser.Scene): CouncilPanel {
         pending.push(
           scene.time.delayedCall(i * REVEAL_INTERVAL_MS, () => {
             lines.push(
-              scene.add.text(originX, nextY(), `${entry.persona}: ${entry.message}`, {
-                fontFamily: "monospace",
-                fontSize: "14px",
-                color: "#ffffff",
-                backgroundColor: "#00000088",
-                padding: { x: 4, y: 2 },
-                wordWrap: { width: WRAP_WIDTH },
-              }),
+              scene.add
+                .text(originX, originY, `${entry.persona}: ${entry.message}`, {
+                  fontFamily: "monospace",
+                  fontSize: "14px",
+                  color: "#ffffff",
+                  backgroundColor: "#00000088",
+                  padding: { x: 4, y: 2 },
+                  wordWrap: { width: PANEL_WIDTH - 8 },
+                })
+                .setScrollFactor(0),
             );
+            layout();
           }),
         );
       }

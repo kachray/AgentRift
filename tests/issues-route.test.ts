@@ -5,7 +5,7 @@ import os from "node:os";
 import path from "node:path";
 import express from "express";
 import type { WSEvent } from "../shared/types";
-import { Config } from "../shared/config";
+import { Config, councilPointFor } from "../shared/config";
 import { createIssueStore, type IssueStore } from "../server/issue-store";
 import { createAgentStore, type AgentStore } from "../server/agent-store";
 import { createCouncilState } from "../server/council-state";
@@ -52,14 +52,16 @@ const post = (base: string, body: object) =>
 const resolve = (base: string, id: string) =>
   fetch(`${base}/api/issues/${id}/resolve`, { method: "PUT" });
 
-/** Every agent pointed at the same shared point, mid-walk. */
-function expectAllTargeting(agentStore: AgentStore, target: { x: number; y: number }): void {
+/** Every agent pointed at its own council seat, mid-walk. */
+function expectAllTargeting(agentStore: AgentStore): void {
   const agents = agentStore.getAll();
   expect(agents).toHaveLength(5);
   for (const agent of agents) {
-    expect(agent.target).toEqual(target);
+    expect(agent.target).toEqual(councilPointFor(agent.stationId));
     expect(agent.status).toBe("walking");
   }
+  // Spread, not converged: no two agents share a seat.
+  expect(new Set(agents.map((a) => `${a.target?.x},${a.target?.y}`)).size).toBe(5);
 }
 
 /** Each agent back at whichever station it belongs to, mid-walk. */
@@ -95,12 +97,12 @@ describe("issues routes", () => {
     expect(res.status).toBe(400);
   });
 
-  it("sends all 5 agents to the meeting point on trigger", async () => {
+  it("sends all 5 agents to their own council seat on trigger", async () => {
     const { base, agentStore } = startApp();
     for (const severity of ["high", "low", "medium"]) {
       await post(base, { title: "issue", severity });
     }
-    expectAllTargeting(agentStore, { x: Config.meetingPoint.x, y: Config.meetingPoint.y });
+    expectAllTargeting(agentStore);
   });
 
   it("does not re-trigger, or re-command agents, on issues filed while active", async () => {
@@ -109,7 +111,7 @@ describe("issues routes", () => {
       await post(base, { title: "issue", severity });
     }
     expect(broadcast).toHaveBeenCalledTimes(1);
-    expectAllTargeting(agentStore, { x: Config.meetingPoint.x, y: Config.meetingPoint.y });
+    expectAllTargeting(agentStore);
   });
 
   it("sends every agent back to its own station when the latch clears", async () => {
@@ -121,7 +123,7 @@ describe("issues routes", () => {
     }
     const unresolved = issueStore.getAll();
     expect((await resolve(base, unresolved[0].id)).status).toBe(200);
-    expectAllTargeting(agentStore, { x: Config.meetingPoint.x, y: Config.meetingPoint.y });
+    expectAllTargeting(agentStore);
 
     expect((await resolve(base, unresolved[1].id)).status).toBe(200);
     expectAllHeadingHome(agentStore);
@@ -139,7 +141,7 @@ describe("issues routes", () => {
       await post(base, { title: "issue again", severity });
     }
     expect(broadcast).toHaveBeenCalledTimes(2);
-    expectAllTargeting(agentStore, { x: Config.meetingPoint.x, y: Config.meetingPoint.y });
+    expectAllTargeting(agentStore);
   });
 
   it("retargets an agent home mid-walk when the latch clears", async () => {
@@ -148,7 +150,7 @@ describe("issues routes", () => {
       await post(base, { title: "issue", severity });
     }
     // Still walking: nothing has reported an arrival, so every target is live.
-    expectAllTargeting(agentStore, { x: Config.meetingPoint.x, y: Config.meetingPoint.y });
+    expectAllTargeting(agentStore);
 
     const unresolved = issueStore.getAll();
     await resolve(base, unresolved[0].id);

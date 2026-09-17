@@ -42,8 +42,9 @@ server, JSON file persistence, shared types in `shared/types.ts`.
   unresolved count crosses to `>= threshold`, and re-arms only after the count
   drops back below the threshold. The latch lives in `server/council-state.ts`
   and is checked from both edges — issue creation (may trigger) and issue
-  resolution (may clear) — so neither edge can bypass it. Agents walk to
-  `Config.meetingPoint` on trigger and back to their own stations on clear.
+  resolution (may clear) — so neither edge can bypass it. Agents walk to their
+  own council seat (offset from `Config.meetingPoint`, via `councilPointFor` in
+  `shared/config.ts`) on trigger and back to their own stations on clear.
 - **Agent status on arrival is derived in the agent store, not the route.**
   A write that clears the target has said "I have arrived"; `update()` reads
   the position against the live `Config` and sets `at_council` or `idle`.

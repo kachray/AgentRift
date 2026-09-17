@@ -2,7 +2,7 @@ import { EventEmitter } from "node:events";
 import fs from "node:fs";
 import path from "node:path";
 import type { Agent } from "../shared/types";
-import { Config } from "../shared/config";
+import { Config, councilPointFor } from "../shared/config";
 
 const AGENTS_FILE = "agents.json";
 const ALLOWED_KEYS = new Set<string>([
@@ -84,7 +84,10 @@ function withinEpsilon(a: { x: number; y: number }, b: { x: number; y: number })
 function deriveArrivalStatus(partial: Partial<Agent>, current: Agent): Partial<Agent> {
   if (partial.status !== undefined || partial.target !== null) return {};
   const position = partial.position ?? current.position;
-  if (withinEpsilon(position, Config.meetingPoint)) return { status: "at_council" };
+  // The agent's own seat, not the bare meeting point: agents sit spread around
+  // it now, and the seat comes from the same councilPointFor the retarget uses.
+  const seat = councilPointFor(current.stationId);
+  if (seat && withinEpsilon(position, seat)) return { status: "at_council" };
   const station = Config.stations.find((s) => s.id === current.stationId);
   if (station && withinEpsilon(position, station)) return { status: "idle" };
   return {}; // somewhere else entirely — don't guess
