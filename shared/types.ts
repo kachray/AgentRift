@@ -32,9 +32,20 @@ export interface Config {
   meetingPoint: Station;
 }
 
+/**
+ * One persona's contribution to a council debate. The four personas are their own
+ * cast, not the five walking agents, so nothing here ties a message to an agent id.
+ */
+export interface DebateMessage {
+  persona: string;
+  /** Response text, or the "(unable to respond)" sentinel when the call failed. */
+  message: string;
+}
+
 export type WSEvent =
   | { type: "agent:update"; payload: Agent }
   | { type: "agent:list"; payload: Agent[] }
   | { type: "issue:created"; payload: Issue }
   | { type: "issue:updated"; payload: Issue }
-  | { type: "council:triggered"; payload: { unresolvedCount: number; threshold: number } };
+  | { type: "council:triggered"; payload: { unresolvedCount: number; threshold: number } }
+  | { type: "council:debate"; payload: DebateMessage[] };

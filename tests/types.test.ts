@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import type { Agent, Issue, WSEvent } from "../shared/types";
+import type { Agent, DebateMessage, Issue, WSEvent } from "../shared/types";
 
 describe("shared types", () => {
   it("compiles with real shapes", () => {
@@ -21,6 +21,9 @@ describe("shared types", () => {
       ownerAgentId: null,
     };
     const event: WSEvent = { type: "agent:update", payload: agent };
+    const debate: DebateMessage[] = [{ persona: "Vera", message: "Reactor first." }];
+    const debateEvent: WSEvent = { type: "council:debate", payload: debate };
+    expect(debateEvent.payload[0].persona).toBe("Vera");
     expect(event.payload).toBe(agent);
     expect(issue.severity).toBe("high");
     expect(issue.ownerAgentId).toBeNull();

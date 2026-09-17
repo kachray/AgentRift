@@ -4,6 +4,7 @@ import { connectSocket, type GameSocket, type SocketState, SERVER_URL } from "..
 import { createFloor } from "../render/tiles";
 import { createStations } from "../render/stations";
 import { createAgentViews } from "../render/agents";
+import { createCouncilPanel, type CouncilPanel } from "../render/council-panel";
 import { findPath, type Point } from "../pathfinding/grid-path";
 
 /** Calibration knobs, not constants of nature. */
@@ -21,6 +22,7 @@ export class WorldScene extends Phaser.Scene {
   private readonly walks = new Map<string, Walk>();
   private socket?: GameSocket;
   private statusText?: Phaser.GameObjects.Text;
+  private council?: CouncilPanel;
 
   constructor() {
     super("WorldScene");
@@ -31,6 +33,7 @@ export class WorldScene extends Phaser.Scene {
 
     createFloor(this);
     createStations(this);
+    this.council = createCouncilPanel(this);
 
     this.statusText = this.add.text(12, 12, "Disconnected", {
       fontFamily: "monospace",
@@ -67,6 +70,10 @@ export class WorldScene extends Phaser.Scene {
         this.walkTo(agent);
         break;
       }
+      case "council:debate":
+        console.log(`[ws] council:debate (${event.payload.length} responses)`);
+        this.council?.show(event.payload);
+        break;
       default:
         console.log("[ws]", event);
     }

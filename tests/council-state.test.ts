@@ -42,4 +42,32 @@ describe("council-state", () => {
     council.notify(0);
     expect(council.isActive()).toBe(false);
   });
+
+  it("grants the one-shot claim exactly once per session", () => {
+    const council = createCouncilState(3);
+    council.notify(3);
+    expect(council.claimDebate()).toBe(true);
+    expect(council.claimDebate()).toBe(false);
+    expect(council.claimDebate()).toBe(false);
+  });
+
+  it("refuses a claim while the latch is inactive", () => {
+    const council = createCouncilState(3);
+    expect(council.claimDebate()).toBe(false);
+    council.notify(3);
+    council.notify(2);
+    expect(council.claimDebate()).toBe(false);
+  });
+
+  it("re-arms the claim on the same edge that re-arms the latch", () => {
+    const council = createCouncilState(3);
+    council.notify(3);
+    expect(council.claimDebate()).toBe(true);
+    // A resolve that stays above the threshold is not a new session.
+    council.notify(4);
+    expect(council.claimDebate()).toBe(false);
+    council.notify(2);
+    council.notify(3);
+    expect(council.claimDebate()).toBe(true);
+  });
 });
