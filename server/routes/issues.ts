@@ -6,6 +6,7 @@ import type { AgentStore } from "../agent-store";
 import type { CouncilState } from "../council-state";
 
 const SEVERITIES = new Set<string>(["low", "medium", "high"]);
+const TITLE_MAX = 200;
 
 export function createIssuesRouter(
   store: IssueStore,
@@ -35,8 +36,13 @@ export function createIssuesRouter(
 
   router.post("/", (req, res) => {
     const { title, severity } = req.body ?? {};
-    if (typeof title !== "string" || title.trim() === "" || !SEVERITIES.has(severity)) {
-      return res.status(400).json({ error: "title (non-empty string) and severity (low|medium|high) required" });
+    if (
+      typeof title !== "string" ||
+      title.trim() === "" ||
+      title.length > TITLE_MAX ||
+      !SEVERITIES.has(severity)
+    ) {
+      return res.status(400).json({ error: `title (non-empty string, max ${TITLE_MAX} chars) and severity (low|medium|high) required` });
     }
     const issue = store.create({ title, severity });
     const unresolvedCount = store.getUnresolvedCount();

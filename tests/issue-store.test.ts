@@ -55,6 +55,17 @@ describe("issue-store", () => {
     expect(store.resolve("nope")).toBeUndefined();
   });
 
+  it("boots empty when the existing file is corrupt, instead of throwing", () => {
+    const dir = tmp();
+    fs.writeFileSync(path.join(dir, "issues.json"), "{not json");
+    const store = createIssueStore(dir);
+    expect(store.getAll()).toHaveLength(0);
+    expect(store.getUnresolvedCount()).toBe(0);
+    // A create still works and overwrites the corrupt file.
+    store.create({ title: "Reactor overheating", severity: "high" });
+    expect(createIssueStore(dir).getAll()).toHaveLength(1);
+  });
+
   it("emits created and resolved events", () => {
     const store = createIssueStore(tmp());
     const created: unknown[] = [];

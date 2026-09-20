@@ -45,7 +45,9 @@ function isPoint(value: unknown): boolean {
   const keys = Object.keys(value);
   if (keys.length !== 2 || !keys.includes("x") || !keys.includes("y")) return false;
   const { x, y } = value as { x: unknown; y: unknown };
-  return typeof x === "number" && typeof y === "number";
+  // isFinite, not just typeof: JSON has no NaN, so a NaN would round-trip to
+  // null in the persisted file and walk the client sprite off the map.
+  return Number.isFinite(x) && Number.isFinite(y);
 }
 
 function validatePartial(partial: Partial<Agent>): void {
@@ -104,8 +106,17 @@ export function createAgentStore(dataDir: string): AgentStore {
   }
 
   if (fs.existsSync(file)) {
-    for (const agent of JSON.parse(fs.readFileSync(file, "utf8")) as Agent[]) {
-      agents.set(agent.id, agent);
+    try {
+      for (const agent of JSON.parse(fs.readFileSync(file, "utf8")) as Agent[]) {
+        agents.set(agent.id, agent);
+      }
+    } catch (err) {
+      // A corrupt file must not take the server down at boot. The seed
+      // overwrites it, so nothing of the unreadable file survives to re-break
+      // the next boot.
+      console.error(`agents.json is unreadable, seeding fresh agents: ${err instanceof Error ? err.message : err}`);
+      for (const agent of seedAgents()) agents.set(agent.id, agent);
+      persist();
     }
   } else {
     for (const agent of seedAgents()) agents.set(agent.id, agent);

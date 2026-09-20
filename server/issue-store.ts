@@ -30,8 +30,15 @@ export function createIssueStore(dataDir: string): IssueStore {
   }
 
   if (fs.existsSync(issuesFile)) {
-    for (const issue of JSON.parse(fs.readFileSync(issuesFile, "utf8")) as Issue[]) {
-      issues.set(issue.id, issue);
+    try {
+      for (const issue of JSON.parse(fs.readFileSync(issuesFile, "utf8")) as Issue[]) {
+        issues.set(issue.id, issue);
+      }
+    } catch (err) {
+      // A corrupt file must not take the server down at boot. Nothing in an
+      // unreadable file is recoverable through this path; the next create or
+      // resolve overwrites it.
+      console.error(`issues.json is unreadable, starting empty: ${err instanceof Error ? err.message : err}`);
     }
   }
 

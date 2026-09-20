@@ -103,6 +103,21 @@ describe("agent-store", () => {
     const store = createAgentStore(tmp());
     expect(store.update("ada", { position: { x: 1, y: 2 }, target: { x: 3, y: 4 } })?.target).toEqual({ x: 3, y: 4 });
   });
+
+  it("update rejects non-finite coordinates (they would round-trip to null in JSON)", () => {
+    const store = createAgentStore(tmp());
+    expect(() => store.update("ada", { position: { x: NaN, y: 2 } as never })).toThrow(TypeError);
+    expect(() => store.update("ada", { target: { x: 1, y: Infinity } as never })).toThrow(TypeError);
+  });
+
+  it("seeds fresh agents when the existing file is corrupt, instead of throwing", () => {
+    const dir = tmp();
+    fs.writeFileSync(path.join(dir, "agents.json"), "{not json");
+    const store = createAgentStore(dir);
+    expect(store.getAll()).toHaveLength(5);
+    // The seed overwrote the corrupt file, so the next boot is clean too.
+    expect(createAgentStore(dir).getAll()).toHaveLength(5);
+  });
 });
 
 describe("agent-store arrival status", () => {

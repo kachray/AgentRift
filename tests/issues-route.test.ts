@@ -97,6 +97,12 @@ describe("issues routes", () => {
     expect(res.status).toBe(400);
   });
 
+  it("rejects a title over 200 chars with 400", async () => {
+    const { base } = startApp();
+    const res = await post(base, { title: "x".repeat(201), severity: "high" });
+    expect(res.status).toBe(400);
+  });
+
   it("sends all 5 agents to their own council seat on trigger", async () => {
     const { base, agentStore } = startApp();
     for (const severity of ["high", "low", "medium"]) {

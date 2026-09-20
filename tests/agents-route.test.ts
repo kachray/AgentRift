@@ -55,6 +55,11 @@ describe("agents routes", () => {
     expect((await put(base, { target: { x: 100 } })).status).toBe(400);
   });
 
+  it("rejects a non-finite coordinate over the wire (1e999 parses to Infinity)", async () => {
+    const base = startApp();
+    expect((await put(base, { position: { x: 1e999, y: 200 } })).status).toBe(400);
+  });
+
   it("rejects an unknown field", async () => {
     const base = startApp();
     expect((await put(base, { flying: true })).status).toBe(400);
