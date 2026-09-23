@@ -10,6 +10,8 @@ const MAX_HEIGHT = Config.canvasHeight - MARGIN * 2;
 
 export interface CouncilPanel {
   show(messages: DebateMessage[]): void;
+  /** One non-debate line in the same spot — e.g. "Council convening…" until debate messages arrive. */
+  showStatus(text: string): void;
 }
 
 /**
@@ -49,6 +51,23 @@ export function createCouncilPanel(scene: Phaser.Scene): CouncilPanel {
     }
   }
 
+  /** One panel line: created at the origin, then re-fit into the stack. */
+  function addLine(content: string): void {
+    lines.push(
+      scene.add
+        .text(originX, originY, content, {
+          fontFamily: "monospace",
+          fontSize: "14px",
+          color: "#ffffff",
+          backgroundColor: "#00000088",
+          padding: { x: 4, y: 2 },
+          wordWrap: { width: PANEL_WIDTH - 8 },
+        })
+        .setScrollFactor(0),
+    );
+    layout();
+  }
+
   return {
     show(messages) {
       // A second debate mid-reveal replaces the first rather than interleaving.
@@ -56,22 +75,14 @@ export function createCouncilPanel(scene: Phaser.Scene): CouncilPanel {
       for (const [i, entry] of messages.entries()) {
         pending.push(
           scene.time.delayedCall(i * REVEAL_INTERVAL_MS, () => {
-            lines.push(
-              scene.add
-                .text(originX, originY, `${entry.persona}: ${entry.message}`, {
-                  fontFamily: "monospace",
-                  fontSize: "14px",
-                  color: "#ffffff",
-                  backgroundColor: "#00000088",
-                  padding: { x: 4, y: 2 },
-                  wordWrap: { width: PANEL_WIDTH - 8 },
-                })
-                .setScrollFactor(0),
-            );
-            layout();
+            addLine(`${entry.persona}: ${entry.message}`);
           }),
         );
       }
+    },
+    showStatus(text) {
+      clear();
+      addLine(text);
     },
   };
 }

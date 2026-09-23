@@ -2,7 +2,7 @@ import { EventEmitter } from "node:events";
 import fs from "node:fs";
 import path from "node:path";
 import type { Agent } from "../shared/types";
-import { Config, councilPointFor } from "../shared/config";
+import { Config, councilPointFor, withinEpsilon } from "../shared/config";
 
 const AGENTS_FILE = "agents.json";
 const ALLOWED_KEYS = new Set<string>([
@@ -22,17 +22,33 @@ export interface AgentStore {
   events: EventEmitter;
 }
 
+/** Seeded agent names, keyed by station id — never a parallel array to shift. */
+const AGENT_NAMES: Readonly<Record<string, string>> = {
+  lab: "Ada",
+  forge: "Grace",
+  garden: "Alan",
+  library: "Katherine",
+  commons: "Dennis",
+};
+
 function seedAgents(): Agent[] {
-  const names = ["Ada", "Grace", "Alan", "Katherine", "Dennis"];
-  return Config.stations.map((station, i) => ({
-    id: names[i].toLowerCase(),
-    name: names[i],
-    stationId: station.id,
-    position: { x: station.x, y: station.y },
-    target: null,
-    status: "idle" as const,
-    currentTask: null,
-  }));
+  return Config.stations.map((station) => {
+    const name = AGENT_NAMES[station.id];
+    if (!name) {
+      throw new Error(
+        `seedAgents: no name for station '${station.id}' — every station in Config.stations needs an entry in AGENT_NAMES`,
+      );
+    }
+    return {
+      id: name.toLowerCase(),
+      name,
+      stationId: station.id,
+      position: { x: station.x, y: station.y },
+      target: null,
+      status: "idle" as const,
+      currentTask: null,
+    };
+  });
 }
 
 /**
@@ -64,14 +80,6 @@ function validatePartial(partial: Partial<Agent>): void {
   if (partial.target !== undefined && partial.target !== null && !isPoint(partial.target)) {
     throw new TypeError("target must be {x, y} numbers or null");
   }
-}
-
-const ARRIVAL_EPSILON = 1; // px, same slack the client uses to mean "already standing there"
-
-function withinEpsilon(a: { x: number; y: number }, b: { x: number; y: number }): boolean {
-  const dx = a.x - b.x;
-  const dy = a.y - b.y;
-  return dx * dx + dy * dy <= ARRIVAL_EPSILON * ARRIVAL_EPSILON;
 }
 
 /**

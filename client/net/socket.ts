@@ -1,7 +1,7 @@
 import type { WSEvent } from "../../shared/types";
 
 // Single source for the server origin.
-export const SERVER_URL = "http://localhost:3000";
+const SERVER_URL = "http://localhost:3000";
 const WS_URL = SERVER_URL.replace(/^http/, "ws");
 
 const RETRY_START_MS = 1000;
@@ -78,4 +78,19 @@ export function connectSocket(handlers: SocketHandlers): GameSocket {
       ws.close();
     },
   };
+}
+
+/**
+ * The client moved the agent, so the client reports where it ended up —
+ * position plus a cleared target, which the store reads as "I have arrived".
+ */
+export function reportAgentArrival(id: string, point: { x: number; y: number }): void {
+  fetch(`${SERVER_URL}/api/agents/${id}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      position: { x: Math.round(point.x), y: Math.round(point.y) },
+      target: null,
+    }),
+  }).catch((err) => console.warn("[walk] arrival report failed", err));
 }

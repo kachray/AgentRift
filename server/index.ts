@@ -18,13 +18,16 @@ try {
 }
 
 const PORT = Number(process.env.PORT ?? 3000);
+// Vite dev server port; the CORS origin below derives from it. Override when
+// the client runs on anything other than Vite's default 5173.
+const CLIENT_PORT = Number(process.env.CLIENT_PORT ?? 5173);
 const dataDir = path.join(import.meta.dirname, "data");
 
 const app = express();
 app.use(express.json());
 
 // The client is served by Vite on a different origin, so its arrival PUT is preflighted.
-const ALLOWED_ORIGINS = new Set(["http://localhost:5173"]); // TODO Phase 8: hardcoded localhost — must be config before any deployment.
+const ALLOWED_ORIGINS = new Set([`http://localhost:${CLIENT_PORT}`]);
 app.use((req, res, next) => {
   const origin = req.headers.origin;
   if (origin && ALLOWED_ORIGINS.has(origin)) {

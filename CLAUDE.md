@@ -9,6 +9,7 @@ server, JSON file persistence, shared types in `shared/types.ts`.
 
 - `npm run dev:server` — Express + ws server with hot reload (tsx)
 - `npm run dev:client` — Vite dev server for the Phaser client
+- `npm run build` — production client bundle (`client/dist/`)
 - `npm test` — Vitest (server-side logic)
 
 ## Rules
@@ -31,7 +32,12 @@ server, JSON file persistence, shared types in `shared/types.ts`.
 ## Layout
 
 - `client/` — Phaser game, Vite root, single `index.html` entry
+  - `client/net` — WebSocket client + HTTP calls to the server
+  - `client/render` — display helpers (tiles, stations, agents, council panel)
+  - `client/pathfinding` — walk pathfinding
 - `server/` — Express REST + ws WebSocket bridge, council engine
+  - `server/council` — debate engine (Groq client, personas, debate trigger)
+  - `server/routes` — Express routers (agents, issues)
 - `server/data/` — runtime JSON persistence (gitignored)
 - `shared/` — types shared by client and server
 - `tests/` — Vitest tests

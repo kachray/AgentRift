@@ -1,6 +1,7 @@
 import Phaser from "phaser";
+import { withinEpsilon } from "../../shared/config";
 import type { Agent, WSEvent } from "../../shared/types";
-import { connectSocket, type GameSocket, type SocketState, SERVER_URL } from "../net/socket";
+import { connectSocket, type GameSocket, type SocketState, reportAgentArrival } from "../net/socket";
 import { createFloor } from "../render/tiles";
 import { createStations } from "../render/stations";
 import { createAgentViews } from "../render/agents";
@@ -29,8 +30,6 @@ export class WorldScene extends Phaser.Scene {
   }
 
   create(): void {
-    console.log("WorldScene created");
-
     createFloor(this);
     createStations(this);
     this.council = createCouncilPanel(this);
@@ -44,6 +43,12 @@ export class WorldScene extends Phaser.Scene {
     this.socket = connectSocket({
       onEvent: (event) => this.handleEvent(event),
       onState: (state) => this.setStatus(state),
+    });
+
+    // A scene restart must not leak the old socket and its retry loop.
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      this.socket?.close();
+      this.socket = undefined;
     });
   }
 
@@ -65,19 +70,17 @@ export class WorldScene extends Phaser.Scene {
         this.agents.clear();
         for (const agent of event.payload) this.agents.set(agent.id, agent);
         this.views = createAgentViews(this, event.payload);
-        console.log(`[ws] agent:list (${event.payload.length} agents)`);
         break;
       case "agent:update": {
         const agent = event.payload;
         this.agents.set(agent.id, agent);
-        console.log(
-          `[ws] agent:update ${agent.id} ${agent.status} (${agent.position.x},${agent.position.y})`,
-        );
         this.walkTo(agent);
         break;
       }
+      case "council:triggered":
+        this.council?.showStatus("Council convening…");
+        break;
       case "council:debate":
-        console.log(`[ws] council:debate (${event.payload.length} responses)`);
         this.council?.show(event.payload);
         break;
       default:
@@ -105,8 +108,8 @@ export class WorldScene extends Phaser.Scene {
     this.stopWalk(agent.id);
 
     const target: Point = { x: dest.x, y: dest.y };
-    if (Phaser.Math.Distance.Between(view.x, view.y, target.x, target.y) < 1) {
-      this.reportArrival(agent.id, target); // already standing there; just clear the target
+    if (withinEpsilon({ x: view.x, y: view.y }, target)) {
+      reportAgentArrival(agent.id, target); // already standing there; just clear the target
       return;
     }
 
@@ -131,14 +134,10 @@ export class WorldScene extends Phaser.Scene {
         // reached. Identity check, not Phaser's stop() semantics.
         if (this.walks.get(agent.id) !== record) return;
         this.walks.delete(agent.id);
-        console.log(`[walk] ${agent.id} arrived (${target.x},${target.y})`);
-        this.reportArrival(agent.id, target);
+        reportAgentArrival(agent.id, target);
       },
     });
     this.walks.set(agent.id, record);
-    console.log(
-      `[walk] ${agent.id} -> (${target.x},${target.y}) over ${tweens.reduce((ms, t) => ms + t.duration, 0) | 0}ms`,
-    );
   }
 
   private stopWalk(id: string): void {
@@ -146,17 +145,5 @@ export class WorldScene extends Phaser.Scene {
     if (!walk) return;
     walk.tween.stop();
     this.walks.delete(id);
-  }
-
-  /** The client moved the agent, so the client reports where it ended up. */
-  private reportArrival(id: string, target: Point): void {
-    fetch(`${SERVER_URL}/api/agents/${id}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        position: { x: Math.round(target.x), y: Math.round(target.y) },
-        target: null,
-      }),
-    }).catch((err) => console.warn("[walk] arrival report failed", err));
   }
 }

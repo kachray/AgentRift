@@ -118,6 +118,15 @@ describe("agent-store", () => {
     // The seed overwrote the corrupt file, so the next boot is clean too.
     expect(createAgentStore(dir).getAll()).toHaveLength(5);
   });
+
+  it("names the mismatch when a station has no seed name, instead of crashing unclearly", () => {
+    Config.stations.push({ id: "new-station", x: 0, y: 0 });
+    try {
+      expect(() => createAgentStore(tmp())).toThrow("seedAgents: no name for station 'new-station'");
+    } finally {
+      Config.stations.pop();
+    }
+  });
 });
 
 describe("agent-store arrival status", () => {

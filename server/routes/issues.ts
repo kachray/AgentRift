@@ -42,7 +42,7 @@ export function createIssuesRouter(
       title.length > TITLE_MAX ||
       !SEVERITIES.has(severity)
     ) {
-      return res.status(400).json({ error: `title (non-empty string, max ${TITLE_MAX} chars) and severity (low|medium|high) required` });
+      return res.status(400).json({ error: `title (non-empty string, max ${TITLE_MAX} chars) and severity (${[...SEVERITIES].join("|")}) required` });
     }
     const issue = store.create({ title, severity });
     const unresolvedCount = store.getUnresolvedCount();
