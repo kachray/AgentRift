@@ -12,6 +12,8 @@ export interface CouncilPanel {
   show(messages: DebateMessage[]): void;
   /** One non-debate line in the same spot — e.g. "Council convening…" until debate messages arrive. */
   showStatus(text: string): void;
+  /** Drop all lines and pending reveals — e.g. on reconnect resync. */
+  clear(): void;
 }
 
 /**
@@ -69,6 +71,7 @@ export function createCouncilPanel(scene: Phaser.Scene): CouncilPanel {
   }
 
   return {
+    clear,
     show(messages) {
       // A second debate mid-reveal replaces the first rather than interleaving.
       clear();

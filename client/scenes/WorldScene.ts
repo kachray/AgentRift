@@ -67,6 +67,7 @@ export class WorldScene extends Phaser.Scene {
         // Reconnect fires agent:list again — the resync must not accumulate.
         for (const id of [...this.walks.keys()]) this.stopWalk(id); // stale tweens point at old views
         for (const view of this.views.values()) view.destroy(); // otherwise sprites stack
+        this.council?.clear(); // otherwise pre-disconnect debate lines survive the resync
         this.agents.clear();
         for (const agent of event.payload) this.agents.set(agent.id, agent);
         this.views = createAgentViews(this, event.payload);
