@@ -28,6 +28,11 @@ server, JSON file persistence, shared types in `shared/types.ts`.
 - **No database.** JSON files under `server/data/` only.
 - Shared client/server types live in `shared/types.ts` — import from there,
   never duplicate.
+- `server/council/engine.ts`'s `buildContext` must stay fully synchronous (no
+  await before it finishes reading agent/issue data). `issue-store.ts`'s
+  `getAll()` returns objects by reference, not deep copies — a `resolve()`
+  mutating an issue mid-build would leak into the debate context if an await
+  were ever introduced before the context string is built.
 
 ## Layout
 
