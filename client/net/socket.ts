@@ -6,6 +6,7 @@ const WS_URL = SERVER_URL.replace(/^http/, "ws");
 
 const RETRY_START_MS = 1000;
 const RETRY_MAX_MS = 10000;
+const ARRIVAL_RETRY_DELAY_MS = 1500;
 
 export type SocketState = "connected" | "retrying" | "disconnected";
 
@@ -85,12 +86,22 @@ export function connectSocket(handlers: SocketHandlers): GameSocket {
  * position plus a cleared target, which the store reads as "I have arrived".
  */
 export function reportAgentArrival(id: string, point: { x: number; y: number }): void {
-  fetch(`${SERVER_URL}/api/agents/${id}`, {
-    method: "PUT",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      position: { x: Math.round(point.x), y: Math.round(point.y) },
-      target: null,
-    }),
-  }).catch((err) => console.warn("[walk] arrival report failed", err));
+  const body = JSON.stringify({
+    position: { x: Math.round(point.x), y: Math.round(point.y) },
+    target: null,
+  });
+  const put = () =>
+    fetch(`${SERVER_URL}/api/agents/${id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body,
+    });
+  put().catch(() => {
+    // Single retry after a short wait: a blip or server restart should not
+    // leave the agent walking with a stale target forever. ponytail: a second
+    // failure is logged and dropped — retry queue if this stops being a local tool.
+    setTimeout(() => {
+      put().catch((err) => console.warn("[walk] arrival report failed", err));
+    }, ARRIVAL_RETRY_DELAY_MS);
+  });
 }
