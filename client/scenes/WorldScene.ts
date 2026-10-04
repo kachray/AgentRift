@@ -79,7 +79,7 @@ export class WorldScene extends Phaser.Scene {
         break;
       }
       case "council:triggered":
-        this.council?.showStatus("Council convening…");
+        this.council?.showStatus("Council convening", { animateDots: true });
         break;
       case "council:debate":
         this.council?.show(event.payload);

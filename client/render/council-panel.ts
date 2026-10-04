@@ -4,14 +4,19 @@ import { Config } from "../../shared/config";
 
 /** Calibration knob, not a constant of nature — reveal pacing is the client's job. */
 const REVEAL_INTERVAL_MS = 2500;
+const DOT_INTERVAL_MS = 400;
 const PANEL_WIDTH = 400;
 const MARGIN = 16;
 const MAX_HEIGHT = Config.canvasHeight - MARGIN * 2;
 
 export interface CouncilPanel {
   show(messages: DebateMessage[]): void;
-  /** One non-debate line in the same spot — e.g. "Council convening…" until debate messages arrive. */
-  showStatus(text: string): void;
+  /**
+   * One non-debate line in the same spot. With animateDots, trailing dots cycle
+   * (1-2-3) every DOT_INTERVAL_MS — activity during the "Council convening"
+   * gap until debate messages arrive.
+   */
+  showStatus(text: string, opts?: { animateDots?: boolean }): void;
   /** Drop all lines and pending reveals — e.g. on reconnect resync. */
   clear(): void;
 }
@@ -31,8 +36,14 @@ export function createCouncilPanel(scene: Phaser.Scene): CouncilPanel {
   const originY = MARGIN;
   const lines: Phaser.GameObjects.Text[] = [];
   let pending: Phaser.Time.TimerEvent[] = [];
+  // Removed by clear() — debate arrival, a new status, and reconnect resync all
+  // route through it, so the dots can never tick behind a replaced panel. Scene
+  // shutdown tears down the scene clock, so no explicit shutdown hook is needed.
+  let statusTimer: Phaser.Time.TimerEvent | undefined;
 
   function clear(): void {
+    statusTimer?.remove();
+    statusTimer = undefined;
     for (const timer of pending) timer.remove();
     pending = [];
     for (const line of lines) line.destroy();
@@ -54,20 +65,20 @@ export function createCouncilPanel(scene: Phaser.Scene): CouncilPanel {
   }
 
   /** One panel line: created at the origin, then re-fit into the stack. */
-  function addLine(content: string): void {
-    lines.push(
-      scene.add
-        .text(originX, originY, content, {
-          fontFamily: "monospace",
-          fontSize: "14px",
-          color: "#ffffff",
-          backgroundColor: "#00000088",
-          padding: { x: 4, y: 2 },
-          wordWrap: { width: PANEL_WIDTH - 8 },
-        })
-        .setScrollFactor(0),
-    );
+  function addLine(content: string): Phaser.GameObjects.Text {
+    const line = scene.add
+      .text(originX, originY, content, {
+        fontFamily: "monospace",
+        fontSize: "14px",
+        color: "#ffffff",
+        backgroundColor: "#00000088",
+        padding: { x: 4, y: 2 },
+        wordWrap: { width: PANEL_WIDTH - 8 },
+      })
+      .setScrollFactor(0);
+    lines.push(line);
     layout();
+    return line;
   }
 
   return {
@@ -83,9 +94,19 @@ export function createCouncilPanel(scene: Phaser.Scene): CouncilPanel {
         );
       }
     },
-    showStatus(text) {
+    showStatus(text, opts) {
       clear();
-      addLine(text);
+      const line = addLine(text);
+      if (!opts?.animateDots) return;
+      let dots = 0;
+      statusTimer = scene.time.addEvent({
+        delay: DOT_INTERVAL_MS,
+        loop: true,
+        callback: () => {
+          dots = (dots % 3) + 1;
+          line.setText(`${text}${".".repeat(dots)}`);
+        },
+      });
     },
   };
 }
