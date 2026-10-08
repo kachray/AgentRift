@@ -103,6 +103,12 @@ describe("issues routes", () => {
     expect(res.status).toBe(400);
   });
 
+  it("rejects a whitespace-only title with 400", async () => {
+    const { base } = startApp();
+    const res = await post(base, { title: "   ", severity: "high" });
+    expect(res.status).toBe(400);
+  });
+
   it("sends all 5 agents to their own council seat on trigger", async () => {
     const { base, agentStore } = startApp();
     for (const severity of ["high", "low", "medium"]) {
