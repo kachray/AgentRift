@@ -57,3 +57,7 @@ npm test   # Vitest, server-side logic; tests use temp dirs, never server/data/
 - **Groq model id pinned via env var.** The council engine defaults to `openai/gpt-oss-120b`,
   overridable with `GROQ_MODEL` in `.env`, because Groq's free model catalog has changed
   before and retired models 404.
+- **Client bundle is ~1.2 MB (~320 KB gzipped), almost entirely Phaser itself.** Vite
+  prints a chunk-size warning on every build. Deliberately left as is: a local tool with a
+  single scene, so code-splitting adds complexity without a real benefit. Revisit only if
+  the client is ever served over a network to other users.
